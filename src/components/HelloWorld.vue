@@ -144,6 +144,7 @@ export default {
   methods: {
     pageChanged(page) {
       // TODO : PAGİNATION ONLY WORKS FOR 1 FORWARD AND 1 BACKWARD. LOOK AT THE DIFFERENCE AND MAKE A REQUEST ACCORDING TO IT
+      this.isLoading = true
       if (this.currentPagee < page) {
         axios.get(this.data.info.next).then(x => {
           console.log(x)
@@ -156,6 +157,7 @@ export default {
         })
       }
       else if (this.currentPagee > page) {
+        this.isLoading = true
         axios.get(this.data.info.prev).then(x => {
           this.currentPagee = page
           this.data = x.data;
