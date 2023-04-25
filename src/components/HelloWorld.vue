@@ -1,8 +1,5 @@
 <template>
   <div class="main-container bg-[#222222] ">
-    <div class="loader" v-if="isLoading">
-      <img src="../assets/loader.gif" alt="">
-    </div>
     <div class="flex flex-wrap flex-row justify-center" v-if="data && !isLoading">
       <div class="w-full flex items-center justify-center">
         <img src="../assets/logo1.png" style="width: 250px;" alt="">
@@ -16,9 +13,8 @@
 
               <path d="M0 0h48v48H0z" fill="none" />
               <g id="Shopicon">
-                <path d="M18,32c3.144,0,6.036-1.049,8.373-2.799L40,42.829L42.829,40L29.201,26.373C30.951,24.036,32,21.144,32,18
-		c0-7.732-6.268-14-14-14S4,10.268,4,18S10.268,32,18,32z M18,8c5.514,0,10,4.486,10,10c0,5.514-4.486,10-10,10
-		c-5.514,0-10-4.486-10-10C8,12.486,12.486,8,18,8z" />
+                <path
+                  d="M18,32c3.144,0,6.036-1.049,8.373-2.799L40,42.829L42.829,40L29.201,26.373C30.951,24.036,32,21.144,32,18c0-7.732-6.268-14-14-14S4,10.268,4,18S10.268,32,18,32z M18,8c5.514,0,10,4.486,10,10c0,5.514-4.486,10-10,10c-5.514,0-10-4.486-10-10C8,12.486,12.486,8,18,8z" />
               </g>
             </svg>
           </span>
@@ -30,24 +26,29 @@
           class="rounded bg-green-500 ml-3 px-3 py-[6px] hover:bg-green-600 ease-in-out duration-200 cursor-pointer"
           @click="searchClicked(searchValue)">Search</button>
       </div>
-      <div v-for="char in characters" :key="char.id"
-        class="mx-5 my-5 bg-slate-700 border-2 rounded border-solid group border-green-500 drop-shadow-lg ease-in-out duration-200 hover:drop-shadow-[0_35px_35px_rgba(6,214,160,0.55)] cursor-pointer"
-        @click='characterDetail(char)'>
-        <div class="container p-4">
-          <div>
-            <img class="rounded" :src="char.image" alt="">
-          </div>
-          <div class="my-4">
-            <div class="text-xl font-extrabold ease-in-out duration-200 group-hover:text-green-500 text-white">
-              {{ char.name }} </div>
-            <p class="text-slate-300"> {{ char.status }} - {{ char.species }}</p>
+      <div v-if="isLoading">
+        <h2>loading</h2>
+      </div>
+      <div v-else class="flex flex-wrap flex-row justify-center">
+        <div v-for="char in characters" :key="char.id"
+          class="mx-5 my-5 bg-slate-700 border-2 rounded border-solid group border-green-500 drop-shadow-lg ease-in-out duration-200 hover:drop-shadow-[0_35px_35px_rgba(6,214,160,0.55)] cursor-pointer"
+          @click='characterDetail(char)'>
+          <div class="container p-4">
+            <div>
+              <img class="rounded" :src="char.image" @load="checkImagesLoaded" alt="">
+            </div>
+            <div class="my-4">
+              <div class="text-xl font-extrabold ease-in-out duration-200 group-hover:text-green-500 text-white">
+                {{ char.name }} </div>
+              <p class="text-slate-300"> {{ char.status }} - {{ char.species }}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
     <div v-if="!isLoading" class="flex justify-center items-center mt-2 pb-2">
-      <vue-awesome-paginate :total-items="data.info.count" :items-per-page="20" :max-pages-shown="5"
-        v-model="currentPage" :on-click="pageChanged" />
+      <vue-awesome-paginate :total-items="data.info.count" :items-per-page="20" :max-pages-shown="5" v-model="currentPage"
+        :on-click="pageChanged" />
     </div>
   </div>
   <template>
@@ -123,60 +124,58 @@ export default {
       isCharacterModalVisible: false,
       characterInformation: null,
       isLoading: true,
-      currentPagee: 1,
       currentPage: 1,
       searchValue: "",
-    }
-  },
-  mounted() {
-    document.onreadystatechange = () => {
-      if (document.readyState == "complete") {
-        setTimeout(() => {
-          this.isLoading = false;
-        }, 2500);
-
-      }
+      items: [],
+      imagesLoaded: 0,
     }
   },
   created() {
-    this.getData()
+    this.getData().then(() => {
+      this.isLoading = false;
+    })
   },
   methods: {
-    pageChanged(page) {
-      // TODO : PAGİNATION ONLY WORKS FOR 1 FORWARD AND 1 BACKWARD. LOOK AT THE DIFFERENCE AND MAKE A REQUEST ACCORDING TO IT
+    checkImagesLoaded() {
+      let images = document.getElementsByTagName('img');
+      let loadedCount = 0;
+      for (let i = 0; i < images.length; i++) {
+        if (images[i].complete) {
+          loadedCount++;
+        }
+      }
+      if (loadedCount === images.length) {
+        this.isLoading = false;
+      }
+    },
+    async pageChanged(page) {
       this.isLoading = true
-      if (this.currentPagee < page) {
-        axios.get(this.data.info.next).then(x => {
+      this.loading = true;
+      if (this.searchValue != "") {
+        await axios.get('https://rickandmortyapi.com/api/character/?page=' + page + '&name=' + this.searchValue).then(x => {
           console.log(x)
-          this.currentPagee = page
           this.data = x.data;
+          this.items = x.data.results;
           this.characters = x.data.results
-          setTimeout(() => {
-            this.isLoading = false;
-          }, 1000);
+          this.isLoading = false;
         })
-      }
-      else if (this.currentPagee > page) {
-        this.isLoading = true
-        axios.get(this.data.info.prev).then(x => {
-          this.currentPagee = page
+      } else {
+        await axios.get('https://rickandmortyapi.com/api/character?page=' + page).then(x => {
+          console.log(x)
           this.data = x.data;
+          this.items = x.data.results;
           this.characters = x.data.results
-          setTimeout(() => {
-            this.isLoading = false;
-          }, 1000);
+          this.isLoading = false;
         })
-      }
-      else {
-        console.log("Page", page, "current page : ", this.currentPagee)
-        console.log("zortladın knk")
       }
 
     },
-    getData() {
-      axios.get('https://rickandmortyapi.com/api/character').then(x => {
+    async getData() {
+      this.loading = true;
+      await axios.get('https://rickandmortyapi.com/api/character').then(x => {
         console.log(x)
         this.data = x.data;
+        this.items = x.data.results;
         this.characters = x.data.results
       })
     },
@@ -189,6 +188,7 @@ export default {
       axios.get('https://rickandmortyapi.com/api/character/?name=' + trimmedVal).then(x => {
         console.log(x)
         this.data = x.data;
+        this.items = x.data.results;
         this.characters = x.data.results
       })
     }
