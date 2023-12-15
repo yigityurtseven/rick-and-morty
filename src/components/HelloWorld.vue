@@ -187,6 +187,7 @@ export default {
       let trimmedVal = encodeURIComponent(value.trim())
       axios.get('https://rickandmortyapi.com/api/character/?name=' + trimmedVal).then(x => {
         console.log(x)
+        this.currentPage = 1
         this.data = x.data;
         this.items = x.data.results;
         this.characters = x.data.results
